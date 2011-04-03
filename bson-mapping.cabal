@@ -8,6 +8,7 @@ homepage:
 Stability:          experimental
 Category:           Data
 Synopsis:           Mapping between BSON and algebraic data types.
+Description: This module defines a Bson class to convert data types to Bson and to convert Bson documents back to datatypes, along with template haskell functions to easily derive the instance.
 Tested-With:        GHC==7.0.2
 Build-Type:         Simple
 Cabal-Version:      >= 1.6
