@@ -15,13 +15,14 @@ class Bson a where
   fromBson :: Monad m => B.Document -> m a
 
 
-deriveBson :: Name -> Name -> Q [Dec]
-deriveBson type' constr = do
-  (cx, fields, keys) <- bsonType
+deriveBson :: Name -> Q [Dec]
+deriveBson type' = do
+  (cx, con, keys) <- bsonType
+  (constr, fields) <- parseCon con
   let context = [ classP ''B.Val [varT key] | key <- keys ] ++ map return cx
   i <- instanceD (sequence context) (mkType ''Bson [mkType type' (map varT keys)])
        [ funD 'toBson [clause [] (normalB $ selectFields fields) []]
-       , deriveFromBson fields
+       , deriveFromBson fields constr
        ]
   return [i]
 
@@ -30,17 +31,13 @@ deriveBson type' constr = do
     bsonType = do
       info <- reify type'
       case info of
-        TyConI (DataD cx _ keys [con] _)  -> do
-          fields <- parseCon con
-          return (cx, fields, map conv keys)
-        TyConI (NewtypeD cx _ keys con _) -> do
-          fields <- parseCon con
-          return (cx, fields, map conv keys)
+        TyConI (DataD cx _ keys [con] _)  -> return (cx, con, map conv keys)
+        TyConI (NewtypeD cx _ keys con _) -> return (cx, con, map conv keys)
         _ -> inputError
     
     parseCon con = do
       case con of
-        RecC _ fields -> return $ map (\(n, _, _) -> n) fields
+        RecC name fields -> return (name, map (\(n, _, _) -> n) fields)
         _             -> inputError
     
     mkType con = foldl appT (conT con)
@@ -50,7 +47,7 @@ deriveBson type' constr = do
     
     inputError = error "deriveBson: Invalid type provided. The type must be a data with a single constructor or a newtype. The constructor must have named fields."
                  
-    deriveFromBson fields = do
+    deriveFromBson fields constr = do
       doc <- newName "doc"
       (fields', stmts) <- genStmts fields doc
       let ci = noBindS $ [| return $(recConE constr fields') |]
