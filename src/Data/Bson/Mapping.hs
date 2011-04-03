@@ -9,16 +9,16 @@ The rules: the data type must have one constructor, and named
 fields. All the fields must be instances of 'Val'.
 
 You can also generate documents with 'selectFields', which takes a
-list of functions names that of type 'a -> b' and returns a function
-of type 'a -> Document'.
+list of functions names that of type a -> b and returns a function
+of type a -> Document.
 
 Example:
 
 > {-# Language TemplateHaskell #-}
-
+>
 > import Data.Bson.Mapping
 > import Data.Time.Clock
-
+>
 > data Post = Post { time :: UTCTime
 >                  , author :: String
 >                  , content :: String 
@@ -26,7 +26,7 @@ Example:
 >                  }
 >           deriving (Show, Read, Eq, Ord)
 > $(deriveBson ''Post)
-
+>
 > main :: IO ()
 > main = do
 >   now <- getCurrentTime
