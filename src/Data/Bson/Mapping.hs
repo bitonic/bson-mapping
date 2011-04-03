@@ -1,5 +1,42 @@
 {-# Language TemplateHaskell #-}
 
+{- |
+
+This module aims to make mapping between algebraic data types and bson
+documents easy.
+
+The rules: the data type must have one constructor, and named
+fields. All the fields must be instances of 'Val'.
+
+You can also generate documents with 'selectFields', which takes a
+list of functions names that of type 'a -> b' and returns a function
+of type 'a -> Document'.
+
+Example:
+
+> {-# Language TemplateHaskell #-}
+
+> import Data.Bson.Mapping
+> import Data.Time.Clock
+
+> data Post = Post { time :: UTCTime
+>                  , author :: String
+>                  , content :: String 
+>                  , votes :: Int
+>                  }
+>           deriving (Show, Read, Eq, Ord)
+> $(deriveBson ''Post)
+
+> main :: IO ()
+> main = do
+>   now <- getCurrentTime
+>   let post = Post now "francesco" "lorem ipsum" 5
+>   (fromBson (toBson post) :: IO Post) >>= print
+>   print $ toBson post
+>   print $ $(selectFields ['time, 'content]) post
+
+-}
+
 module Data.Bson.Mapping (
     Bson (..)
   , deriveBson  
