@@ -1,4 +1,4 @@
-{-# Language TemplateHaskell #-}
+{-# Language TemplateHaskell, FlexibleInstances, UndecidableInstances #-}
 
 {- |
 
@@ -41,28 +41,38 @@ module Data.Bson.Mapping (
     Bson (..)
   , deriveBson  
   , selectFields
+  , getLabel
   ) where
 
-import qualified Data.Bson as B
+import Prelude hiding (lookup)
+
+import Data.Bson
+import Data.Data               (Data, Typeable)
+
 import Language.Haskell.TH
 import Language.Haskell.TH.Lift ()
 
-class Bson a where
-  toBson   :: a -> B.Document
-  fromBson :: Monad m => B.Document -> m a
-
+class (Show a, Eq a, Data a, Typeable a) => Bson a where
+  toBson     :: a -> Document
+  fromBson   :: Monad m => Document -> m a
 
 deriveBson :: Name -> Q [Dec]
 deriveBson type' = do
   (cx, con, keys) <- bsonType
   (constr, fields) <- parseCon con
-  let context = [ classP ''B.Val [varT key] | key <- keys ] ++ map return cx
+  let context = [ classP ''Val [varT key] | key <- keys ] ++ map return cx
   i <- instanceD (sequence context) (mkType ''Bson [mkType type' (map varT keys)])
        [ funD 'toBson [clause [] (normalB $ selectFields fields) []]
        , deriveFromBson fields constr
        ]
-  return [i]
-
+         
+  doc <- newName "doc"         
+  i' <- instanceD (cxt []) (mkType ''Val [mkType type' (map varT keys)])
+        [ funD 'val   [clause [] (normalB $ [| Doc . toBson |]) []]
+        , funD 'cast' [clause [conP 'Doc [varP doc]] (normalB $ [| fromBson $(varE doc) |]) []]
+        ]
+  
+  return [i, i']
   where
 
     bsonType = do
@@ -75,7 +85,7 @@ deriveBson type' = do
     parseCon con = do
       case con of
         RecC name fields -> return (name, map (\(n, _, _) -> n) fields)
-        _             -> inputError
+        _                -> inputError
     
     mkType con = foldl appT (conT con)
     
@@ -93,7 +103,7 @@ deriveBson type' = do
     genStmts [] _ = return ([], [])
     genStmts (f : fs) doc = do
       fvar <- newName "f"
-      let stmt = bindS (varP fvar) $ [| B.lookup (B.u (nameBase f)) $(varE doc) |]
+      let stmt = bindS (varP fvar) $ [| lookup (u (nameBase f)) $(varE doc) |]
       (fields, stmts) <- genStmts fs doc
       return $ (return (f, VarE fvar) : fields, stmt : stmts)
     
@@ -104,4 +114,7 @@ selectFields ns = do
   lamE [varP d] (return e)
   where
     gf _ []        = [| [] |]
-    gf d (n : ns') = [| (B.u (nameBase n) B.=: $(varE n) $(varE d)) : $(gf d ns') |]
+    gf d (n : ns') = [| ($(getLabel n) =: $(varE n) $(varE d)) : $(gf d ns') |]
+
+getLabel :: Name -> Q Exp
+getLabel n = [| u (nameBase n) |]
