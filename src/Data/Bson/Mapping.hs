@@ -35,6 +35,9 @@ Example:
 >   print $ toBson post
 >   print $ $(selectFields ['time, 'content]) post
 
+The 'deriveBson' function will also automatically derive a 'Val' instance
+for the data type.
+
 -}
 
 module Data.Bson.Mapping (
