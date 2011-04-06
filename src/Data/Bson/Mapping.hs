@@ -35,9 +35,6 @@ Example:
 >   print $ toBson post
 >   print $ $(selectFields ['time, 'content]) post
 
-The 'deriveBson' function will also automatically derive a 'Val' instance
-for the data type.
-
 -}
 
 module Data.Bson.Mapping (
@@ -72,7 +69,9 @@ deriveBson type' = do
   doc <- newName "doc"         
   i' <- instanceD (cxt []) (mkType ''Val [mkType type' (map varT keys)])
         [ funD 'val   [clause [] (normalB $ [| Doc . toBson |]) []]
-        , funD 'cast' [clause [conP 'Doc [varP doc]] (normalB $ [| fromBson $(varE doc) |]) []]
+        , funD 'cast' [ clause [conP 'Doc [varP doc]] (normalB $ [| fromBson $(varE doc) |]) []
+                      , clause [[p| _ |]] (normalB $ [| Nothing |]) []
+                      ]          
         ]
   
   return [i, i']
