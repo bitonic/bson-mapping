@@ -41,6 +41,7 @@ module Data.Bson.Mapping (
   , getLabel
   , getConsDoc
   , subDocument
+  , getField
   ) where
 
 import Prelude hiding (lookup)
@@ -121,15 +122,15 @@ deriveBson type' = do
       -- There are no types, but just a constructor (data Foo = Foo),
       -- simply store the constructor name.
       if null types
-      then clause [recP name []] (normalB $ getConsDoc name) []
-      -- Else, convert all the data inside the data types to an array
-      -- and store it in the document.
-      -- Example: if we have 'Foo = Foo String Int', 'Foo "francesco" 4'
-      -- will be converted to ["_cons" =: "Foo", "_data" =: ["francesco", 4]]
-      else do
-        fields <- mapM (\_ -> newName "f") types
-        clause [conP name (map varP fields)]
-          (normalB $ [| (merge $(getConsDoc name)) . (\f -> [dataField =: f]) $ $(listE (map varE fields)) |]) []
+        then clause [recP name []] (normalB $ getConsDoc name) []
+        -- Else, convert all the data inside the data types to an array
+        -- and store it in the document.
+        -- Example: if we have 'Foo = Foo String Int', 'Foo "francesco" 4'
+        -- will be converted to ["_cons" =: "Foo", "_data" =: ["francesco", 4]]
+        else do
+          fields <- mapM (\_ -> newName "f") types
+          clause [conP name (map varP fields)]
+            (normalB $ [| (merge $(getConsDoc name)) . (\f -> [dataField =: f]) $ $(listE (map varE fields)) |]) []
     deriveToBson _ = inputError
 
 
@@ -218,3 +219,6 @@ subDocument lab doc = [append lab (cons '.' l) := v | (l := v) <- doc]
 
 getLabel :: Name -> Q Exp
 getLabel n = [| u (nameBase n) |]
+
+getField :: Name -> Q Exp
+getField n = [| \d -> $(getLabel n) =: $(varE n) d |]
