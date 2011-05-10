@@ -11,8 +11,6 @@ of type a -> Document.
 
 Example:
 
-> {-# Language TemplateHaskell #-}
->
 > import Data.Bson.Mapping
 > import Data.Time.Clock
 >
@@ -34,15 +32,15 @@ Example:
 
 -}
 
-module Data.Bson.Mapping (
-    Bson (..)
-  , deriveBson  
-  , selectFields
-  , getLabel
-  , getConsDoc
-  , subDocument
-  , getField
-  ) where
+module Data.Bson.Mapping
+       ( Bson (..)
+       , deriveBson  
+       , selectFields
+       , getLabel
+       , getConsDoc
+       , subDocument
+       , getField
+       ) where
 
 import Prelude hiding (lookup)
 
@@ -57,6 +55,7 @@ class (Show a, Eq a, Data a, Typeable a) => Bson a where
   toBson     :: a -> Document
   fromBson   :: Monad m => Document -> m a
 
+-- | Derive 'Bson' and 'Val' declarations for a data type.
 deriveBson :: Name -> Q [Dec]
 deriveBson type' = do
   (cx, conss, keys) <- bsonType
@@ -202,6 +201,15 @@ dataField, consField :: UString
 dataField = u "_data"
 consField = u "_cons"
 
+{-|
+
+Select only certain fields in a document, see the code sample at the
+top.
+
+Please note that there is no checking for the names to be actual
+fields of the bson document mapped to a datatype, so be careful.
+
+-}
 selectFields :: [Name] -> Q Exp
 selectFields ns = do
   d <- newName "d"
@@ -211,14 +219,29 @@ selectFields ns = do
     gf _ []        = [| [] |]
     gf d (n : ns') = [| ($(getLabel n) =: $(varE n) $(varE d)) : $(gf d ns') |]
 
+{-|
+
+Get a document that identifies the data type - @getConsDoc ''Post@.
+
+This is useful to select all documents mapped to a certain data type.
+
+-}
 getConsDoc :: Name -> Q Exp
 getConsDoc n = [| [consField =: nameBase n] |]
 
+-- | Simple function to select fields in a nested document.
 subDocument :: Label -> Document -> Document
 subDocument lab doc = [append lab (cons '.' l) := v | (l := v) <- doc]
 
 getLabel :: Name -> Q Exp
 getLabel n = [| u (nameBase n) |]
 
+{-|
+
+Returns a function that gets a datatype and a value, and generates a 'Document' consisting of one field - the label provided - and the value of that datatype.
+
+@$(getField 'time) post@ will generate @[\"time\" =: time post]@.
+
+-}
 getField :: Name -> Q Exp
 getField n = [| \d -> $(getLabel n) =: $(varE n) d |]
