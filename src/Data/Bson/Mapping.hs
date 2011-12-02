@@ -13,14 +13,14 @@ Example:
 
 > import Data.Bson.Mapping
 > import Data.Time.Clock
-> import Data.Data (Data, Typeable)
+> import Data.Data (Typeable)
 >
 > data Post = Post { time :: UTCTime
 >                  , author :: String
 >                  , content :: String 
 >                  , votes :: Int
 >                  }
->           deriving (Show, Read, Eq, Ord, Data, Typeable)
+>           deriving (Show, Read, Eq, Ord, Typeable)
 > $(deriveBson ''Post)
 >
 > main :: IO ()
@@ -46,13 +46,13 @@ module Data.Bson.Mapping
 import Prelude hiding (lookup)
 
 import Data.Bson
-import Data.Data               (Data, Typeable)
+import Data.Data               (Typeable)
 import Data.CompactString.UTF8 (append, cons)
 
 import Language.Haskell.TH
 import Language.Haskell.TH.Lift ()
 
-class (Show a, Eq a, Data a, Typeable a) => Bson a where
+class (Show a, Eq a, Typeable a) => Bson a where
   toBson     :: a -> Document
   fromBson   :: Monad m => Document -> m a
 
