@@ -1,10 +1,10 @@
 Name:               bson-mapping
-Version:            0.1.1
+Version:            0.1.2
 License:            OtherLicense
 License-File:       LICENSE
 Author:             Francesco Mazzoli <f@mazzo.li>
 Maintainer:         Francesco Mazzoli <f@mazzo.li>
-homepage:           
+homepage:
 Stability:          experimental
 Category:           Data
 Synopsis:           Mapping between BSON and algebraic data types.
