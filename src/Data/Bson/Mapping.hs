@@ -140,10 +140,11 @@ deriveBson type' = do
     deriveFromBson conss = do
       con <- newName "con"
       docN <- newName "doc"
+      (SigE _ (ConT strtype)) <- runQ [| "" :: String |]
       let doc = varE docN
       lamE [varP docN] $ doE
         [ bindS (varP con) [| lookup consField $doc |]
-        , noBindS $ caseE (varE con) (map (genMatch doc) conss ++ noMatch)
+        , noBindS $ caseE (sigE (varE con) (conT strtype)) (map (genMatch doc) conss ++ noMatch)
         ]
  
     noMatch = [match [p| _ |] (normalB [| fail "Couldn't find right constructor" |]) []]
