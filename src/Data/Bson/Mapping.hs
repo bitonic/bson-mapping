@@ -13,13 +13,14 @@ Example:
 
 > import Data.Bson.Mapping
 > import Data.Time.Clock
+> import Data.Data (Data, Typeable)
 >
 > data Post = Post { time :: UTCTime
 >                  , author :: String
 >                  , content :: String 
 >                  , votes :: Int
 >                  }
->           deriving (Show, Read, Eq, Ord)
+>           deriving (Show, Read, Eq, Ord, Data, Typeable)
 > $(deriveBson ''Post)
 >
 > main :: IO ()
