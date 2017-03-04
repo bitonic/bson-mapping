@@ -1,4 +1,5 @@
 {-# Language TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {- |
 
@@ -47,7 +48,7 @@ import Prelude hiding (lookup)
 
 import Data.Bson
 import Data.Data               (Typeable)
-import Data.Text (append, cons)
+import Data.Text (Text, append, cons, pack)
 
 import Language.Haskell.TH
 import Language.Haskell.TH.Lift ()
@@ -141,7 +142,7 @@ deriveBson type' = do
     deriveFromBson conss = do
       con <- newName "con"
       docN <- newName "doc"
-      (SigE _ (ConT strtype)) <- runQ [| "" :: String |]
+      (SigE _ (ConT strtype)) <- runQ [| "" :: Text |]
       let doc = varE docN
       lamE [varP docN] $ doE
         [ bindS (varP con) [| lookup consField $doc |]
@@ -194,12 +195,12 @@ deriveBson type' = do
     genStmts [] _ = return ([], [])
     genStmts (f : fs) doc = do
       fvar <- newName "f"
-      let stmt = bindS (varP fvar) $ [| lookup (nameBase f) $doc |]
+      let stmt = bindS (varP fvar) $ [| lookup (pack (nameBase f)) $doc |]
       (fields, stmts) <- genStmts fs doc
       return $ (return (f, VarE fvar) : fields, stmt : stmts)
 
 
-dataField, consField :: String
+dataField, consField :: Text
 dataField = "_data"
 consField = "_cons"
 
@@ -219,7 +220,7 @@ selectFields ns = do
   lamE [varP d] (return e)
   where
     gf _ []        = [| [] |]
-    gf d (n : ns') = [| ($(getLabel n) =: $(varE n) $(varE d)) : $(gf d ns') |]
+    gf d (n : ns') = [| ((pack $(getLabel n)) =: $(varE n) $(varE d)) : $(gf d ns') |]
 
 {-|
 
