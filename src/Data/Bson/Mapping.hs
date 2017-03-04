@@ -17,7 +17,7 @@ Example:
 >
 > data Post = Post { time :: UTCTime
 >                  , author :: String
->                  , content :: String 
+>                  , content :: String
 >                  , votes :: Int
 >                  }
 >           deriving (Show, Read, Eq, Ord, Typeable)
@@ -35,7 +35,7 @@ Example:
 
 module Data.Bson.Mapping
        ( Bson (..)
-       , deriveBson  
+       , deriveBson
        , selectFields
        , getLabel
        , getConsDoc
@@ -60,10 +60,10 @@ class (Show a, Eq a, Typeable a) => Bson a where
 deriveBson :: Name -> Q [Dec]
 deriveBson type' = do
   (cx, conss, keys) <- bsonType
-  
+
   -- Each type in the data type must be an instance of val
   let context = [ classP ''Val [varT key] | key <- keys ] ++ map return cx
-  
+
   -- Generate the functions for the Bson instance
   let fs = [ funD 'toBson (map deriveToBson conss)
            , funD 'fromBson [clause [] (normalB $ deriveFromBson conss) []]
@@ -72,36 +72,36 @@ deriveBson type' = do
 
   -- Generate the Val instance (easy, since a Bson doc is
   -- automatically a Val)
-  doc <- newName "doc"         
+  doc <- newName "doc"
   i' <- instanceD (cxt []) (mkType ''Val [mkType type' (map varT keys)])
         [ funD 'val   [clause [] (normalB $ [| Doc . toBson |]) []]
         , funD 'cast' [ clause [conP 'Doc [varP doc]] (normalB $ [| fromBson $(varE doc) |]) []
                       , clause [[p| _ |]] (normalB $ [| Nothing |]) []
-                      ]          
+                      ]
         ]
-  
+
   return [i, i']
-  
+
   where
 
     -- Check that wha has been provided is a data/newtype declaration
     bsonType = do
       info <- reify type'
       case info of
-        TyConI (DataD cx _ keys conss _)  -> return (cx, conss, map conv keys)
-        TyConI (NewtypeD cx _ keys con _) -> return (cx, [con], map conv keys)
+        TyConI (DataD cx _ keys _ conss _)  -> return (cx, conss, map conv keys)
+        TyConI (NewtypeD cx _ keys _ con _) -> return (cx, [con], map conv keys)
         _ -> inputError
-    
+
     mkType con = foldl appT (conT con)
-    
+
     conv (PlainTV n)    = n
     conv (KindedTV n _) = n
-    
+
     inputError = error $ "deriveBson: Invalid type provided. " ++
                          "The type must be a data type or a newtype. " ++
                          "Currently infix constructors and existential types are not supported."
 
-    
+
     -- deriveToBson generates the clauses that pattern match the
     -- constructors of the data type, and then the function to convert
     -- them to Bson.
@@ -147,7 +147,7 @@ deriveBson type' = do
         [ bindS (varP con) [| lookup consField $doc |]
         , noBindS $ caseE (sigE (varE con) (conT strtype)) (map (genMatch doc) conss ++ noMatch)
         ]
- 
+
     noMatch = [match [p| _ |] (normalB [| fail "Couldn't find right constructor" |]) []]
 
 
