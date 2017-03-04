@@ -22,7 +22,7 @@ Library
                       template-haskell >= 2.5,
                       th-lift >= 0.5.3,
                       bson >= 0.2,
-                      text == 1.1.*
+                      text == 1.2.*
 
   hs-source-dirs:     src
 
