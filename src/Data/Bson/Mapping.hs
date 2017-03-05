@@ -47,7 +47,7 @@ import Prelude hiding (lookup)
 
 import Data.Bson
 import Data.Data               (Typeable)
-import Data.CompactString.UTF8 (append, cons)
+import Data.Text (append, cons)
 
 import Language.Haskell.TH
 import Language.Haskell.TH.Lift ()
@@ -194,14 +194,14 @@ deriveBson type' = do
     genStmts [] _ = return ([], [])
     genStmts (f : fs) doc = do
       fvar <- newName "f"
-      let stmt = bindS (varP fvar) $ [| lookup (u (nameBase f)) $doc |]
+      let stmt = bindS (varP fvar) $ [| lookup (nameBase f) $doc |]
       (fields, stmts) <- genStmts fs doc
       return $ (return (f, VarE fvar) : fields, stmt : stmts)
 
 
-dataField, consField :: UString
-dataField = u "_data"
-consField = u "_cons"
+dataField, consField :: String
+dataField = "_data"
+consField = "_cons"
 
 {-|
 
@@ -236,7 +236,7 @@ subDocument :: Label -> Document -> Document
 subDocument lab doc = [append lab (cons '.' l) := v | (l := v) <- doc]
 
 getLabel :: Name -> Q Exp
-getLabel n = [| u (nameBase n) |]
+getLabel n = [| (nameBase n) |]
 
 {-|
 
